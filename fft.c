@@ -4,32 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-typedef struct complex {
-    double r;
-    double i;
-} complex;
-
-complex prod_complex(complex za, complex zb) {
-    complex z;
-    z.r = za.r * zb.r - za.i * zb.i;
-    z.i = za.r * zb.i + za.i * zb.r;
-    return z;
-}
-
-complex sum_complex(complex za, complex zb) {
-    complex z;
-    z.r = za.r + zb.r;
-    z.i = za.i + zb.i;
-    return z;
-}
-
-complex dif_complex(complex za, complex zb) {
-    complex z;
-    z.r = za.r - zb.r;
-    z.i = za.i - zb.i;
-    return z;
-}
-
 complex calc_w (int i, int n) {
     complex w;
     w.r = cos(2 * M_PI * i / n);
@@ -39,48 +13,58 @@ complex calc_w (int i, int n) {
 
 int bit_reversal (int i, int n) {
     int r = 0;
-    for (int j = 0; (1 << j) <= n; j++) {
-        r |= ((i & 1) << (size - i));
+    for (int j = 1; j <= n; j <<= 1) {
+        r <<= 1;
+        r |= (i & 1);
         i >>= 1;
     }
     return r;
 }
 
-int butterfly_operator (complex* xa, complex* xb, complex w) {
+int butterfly_operator (double* xa, double* xb) {
     *xa = sum_complex(*xa, prod_complex(w, *xb));
     *xb = dif_complex(*xa, prod_complex(w, *xb));
 }
 
 int fft (FILE* fpr, FILE* fpw, int n) {
-    complex* w;
-    double* x;
-    int* idx;
+    double* wr;
+    double* wi;
+    double* xr;
+    double* xi;
+    int idx;
+    double tmp;
     
-    w = (double*)malloc(sizeof(double) * n / 2);
-    x = (double*)malloc(sizeof(double) * n);
-    idx = (int*)malloc(sizeof(int) * n);
-    if (w == NULL || x == NULL || idx == NULL) {
+    wr = (double*)malloc(sizeof(double) * n / 2);
+    wi = (double*)malloc(sizeof(double) * n / 2);
+    xr = (double*)malloc(sizeof(double) * n);
+    xi = (double*)malloc(sizeof(double) * n);
+    if (wr == NULL || wi == NULL || xr == NULL || xi == NULL) {
         printf("memory failure");
         return -1;
     }
 
     for (int i = 0; i < n; i++) {
-        idx[i] = bit_reversal(i, size);
-        x[idx[i]] = 
+        idx = bit_reversal(i, n);
+        if (fscanf(fpr, "%lf\n", &xr[idx]));
+        xi[idx] = 0;
     }
-    for (int i = 0; i < n/2; i++) w[i] = calc_w(i, n);
+    for (int i = 0; i < (n >> 1); i++) {
+        wr[i] = cos(2 * M_PI * i / n);
+        wi[i] = sin(2 * M_PI * i / n);
+    }
 
     for (int i = 1; i < n; i <<= 1) {
-        for (int j = 1; j < n; j <<= i) {
-            for (int k = 1; k <= i; k <<= 1) {
+        for (int j = 0; j < n; j += (2 << i)) {
+            for (int k = 0; k < (1 << i); k++) {
                 
             }
         }
     }
 
-    free(w);
-    free(x);
-    free(idx);
+    free(wr);
+    free(wi);
+    free(xr);
+    free(xi);
 
     return 0;
 }
