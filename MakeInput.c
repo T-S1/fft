@@ -4,7 +4,7 @@
 #include <math.h>
 
 #define FNAME "input.csv"
-#define N 1024
+#define N 32768
 #define F 1000
 #define FS 32000
 

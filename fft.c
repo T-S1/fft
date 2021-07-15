@@ -1,12 +1,11 @@
 #define _USE_MATH_DEFINES
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
 
 #define FNAME_R "input.csv"
 #define FNAME_W "output.csv"
-#define N 1024
+#define N 32768
 
 int bit_reversal (int i, int n) {
     int rev = 0;
@@ -15,96 +14,93 @@ int bit_reversal (int i, int n) {
         rev |= (i & 1);
         i >>= 1;
     }
-    printf("%d\n", rev);
     return rev;
 }
 
-int fft (FILE* fpr, FILE* fpw) {
-    // 回転子の配列
-    double wr[N];     // 実部
-    double wi[N];     // 虚部
-    
-    // 変換対象となる数列
-    double xr[N];     // 実部
-    double xi[N];     // 虚部
-    
+int fft (double xr[], doouble xi[], int n) {
     // 参照用イテレータ
-    int i, j, d, r, p;
+    int i, j, k, d, r;
 
-    double tmp, tr, ti;
+    double tr, ti, wr, wi;
 
-    // // 動的メモリ確保
-    // wr = (double*)malloc(sizeof(double) * (n >> 1));
-    // wi = (double*)malloc(sizeof(double) * (n >> 1));
-    // xr = (double*)malloc(sizeof(double) * n);
-    // xi = (double*)malloc(sizeof(double) * n); 
-    // if (wr == NULL || wi == NULL || xr == NULL || xi == NULL) {
-    //     printf("memory failure");
-    //     return -1;
-    // }
-
-    // ファイルから数列の読み込み
-    for (i = 0; i < N; i++) {
-        int idx = bit_reversal(i, N);
-        fscanf(fpr, "%lf\n", &xr[idx]);
-        xi[idx] = 0;
+    for (i = 1; i <= (n >> 1); i++) {
+        j = i;
+        k = 0;
+        while (j != 0) {
+            k <<= 1;
+            k |= (j & 1);
+            j >>= 1;
+        }
+        if (j < k) {
+            tr = xr[j];
+            ti = xi[j];
+            xr[j] = xr[k];
+            xi[j] = xi[k];
+            xr[k] = tr;
+            xi[k] = ti;
+        }
     }
-    for (i = 0; i < (N >> 1); i++) {
-        wr[i] = cos(2 * M_PI * i / N);
-        wi[i] = sin(2 * M_PI * i / N);
+    for (i = 0; i < (n >> 1); i++) {
+        wr[i] = cos(2 * M_PI * i / n);
+        wi[i] = sin(2 * M_PI * i / n);
     }
 
     d = 1;
-    r = N;
-    while (d < N) {
+    r = (n >> 1);
+    while (d < n) {
         i = 0;
-        j = d;
-        while (j < N) {
-            p = 0;
-            while (p < (N >> 1)) {
-                // x[i] += w[p] * x[j]
-                // x[j] = x[i] - w[p] * x[j]
-                tr = xr[i];
-                ti = xi[i];
+        j = 0;
+        while (i <= (n >> 2)) {
+            wr = cos(theta * i);
+            wi = sin(theta * i);
+            while (k < n) {
+                // x[i] += w[j] * x[k]
+                // x[k] = x[k] - w[j] * x[k]
+                tr = wr[j] * xr[k] - wi[j] * xi[k];
+                ti = wi[j] * xr[k] + wr[j] * xi[k];
 
-                xr[i] += wr[p] * xr[j] - wi[p] * xi[j];
-                xi[i] += wi[p] * xr[j] + wr[p] * xi[j];
+                xr[k] = xr[i] - tr;
+                xi[k] = xi[i] - ti;
 
-                tmp = xr[j];
-                xr[j] = tr - (wr[p] * tmp - wi[p] * xi[j]);
-                xi[j] = ti - (wi[p] * tmp + wr[p] * xi[j]);
+                xr[i] += tr;
+                xi[i] += ti;
 
                 i++;
-                j++;
-                p += r;
+                k++;
             }
-            i = j;
-            j = i + d;
+            i++;
         }
         d <<= 1;
         r >>= 1;
-    }
-
-    for (i = 0; i < N; i++) {
-        fprintf(fpw, "%lf\n", sqrt(xr[i] * xr[i] + xi[i] * xi[i]));
-    }
-
-    // free(wr);
-    // free(wi);
-    // free(xr);
-    // free(xi);
+    }    
 
     return 0;
 }
 
 int main() {
+    double xr[N];
+    double xi[N];
+
     FILE* fpr;
     FILE* fpw;
 
     fpr = fopen(FNAME_R, "r");
     fpw = fopen(FNAME_W, "w");
+    if (fpr == NULL || fpw == NULL) {
+        printf("file open failure");
+        return -1;
+    }
 
-    fft(fpr, fpw);
+    for (int i = 0; i < N; i++) {
+        fscanf(fpr, "%lf\n", &xr[i])
+        xr[i] = 0;
+    }
+
+    fft(xr, xi, N);
+
+    for (i = 0; i < n; i++) {
+        fprintf(fpw, "%lf\n", xr[i] * xr[i] + xi[i] * xi[i]);
+    }
 
     fclose(fpr);
     fclose(fpw);
