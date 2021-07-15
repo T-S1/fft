@@ -5,74 +5,61 @@
 
 #define FNAME_R "input.csv"
 #define FNAME_W "output.csv"
-#define N 32768
+#define N 65536
 
-int bit_reversal (int i, int n) {
-    int rev = 0;
-    for (int j = 1; j < n; j <<= 1) {
-        rev <<= 1;
-        rev |= (i & 1);
-        i >>= 1;
-    }
-    return rev;
-}
+int fft (double xr[], double xi[], int n) {
+    int i, j, k, d;
+    double tr, ti, wr, wi, theta;
 
-int fft (double xr[], doouble xi[], int n) {
-    // 参照用イテレータ
-    int i, j, k, d, r;
-
-    double tr, ti, wr, wi;
-
-    for (i = 1; i <= (n >> 1); i++) {
+    for (i = 1; i < n - 1; i++) {
         j = i;
         k = 0;
-        while (j != 0) {
+        for (int l = 1; l < n; l <<= 1) {
             k <<= 1;
             k |= (j & 1);
             j >>= 1;
         }
-        if (j < k) {
-            tr = xr[j];
-            ti = xi[j];
-            xr[j] = xr[k];
-            xi[j] = xi[k];
+
+        if (i < k) {
+            tr = xr[i];
+            ti = xi[i];
+            xr[i] = xr[k];
+            xi[i] = xi[k];
             xr[k] = tr;
             xi[k] = ti;
         }
     }
-    for (i = 0; i < (n >> 1); i++) {
-        wr[i] = cos(2 * M_PI * i / n);
-        wi[i] = sin(2 * M_PI * i / n);
-    }
 
-    d = 1;
-    r = (n >> 1);
+    /* バタフライ演算 */
+    theta = M_PI;   // W^0_2
+    d = 1;          // バタフライの両端のインデックスの距離
     while (d < n) {
-        i = 0;
-        j = 0;
-        while (i <= (n >> 2)) {
+        i = 0;      // W の乗数
+        while (i < d) {
             wr = cos(theta * i);
             wi = sin(theta * i);
+            j = i;      // バタフライの一方のインデックス
+            k = i + d;  // バタフライの他方のインデックス
             while (k < n) {
-                // x[i] += w[j] * x[k]
-                // x[k] = x[k] - w[j] * x[k]
-                tr = wr[j] * xr[k] - wi[j] * xi[k];
-                ti = wi[j] * xr[k] + wr[j] * xi[k];
+                // x[j] += w[i] * x[k]
+                // x[k] = x[j] - w[i] * x[k]
+                tr = wr * xr[k] - wi * xi[k];
+                ti = wi * xr[k] + wr * xi[k];
 
-                xr[k] = xr[i] - tr;
-                xi[k] = xi[i] - ti;
+                xr[k] = xr[j] - tr;
+                xi[k] = xi[j] - ti;
 
-                xr[i] += tr;
-                xi[i] += ti;
-
-                i++;
-                k++;
+                xr[j] += tr;
+                xi[j] += ti;
+                
+                j += 2 * d;
+                k += 2 * d;
             }
             i++;
         }
-        d <<= 1;
-        r >>= 1;
-    }    
+        theta *= 0.5;   // W^i_d -> W^i_(d * 2)
+        d *= 2;
+    }
 
     return 0;
 }
@@ -80,6 +67,7 @@ int fft (double xr[], doouble xi[], int n) {
 int main() {
     double xr[N];
     double xi[N];
+    int i, n;
 
     FILE* fpr;
     FILE* fpw;
@@ -91,14 +79,23 @@ int main() {
         return -1;
     }
 
-    for (int i = 0; i < N; i++) {
-        fscanf(fpr, "%lf\n", &xr[i])
-        xr[i] = 0;
+    i = 0;
+    while (fscanf(fpr, "%lf\n", &xr[i]) != EOF) {
+        xi[i] = 0;
+        i++;
     }
 
-    fft(xr, xi, N);
+    n = 1;
+    while (i > 1) {
+        i >>= 1;
+        n <<= 1;
+    }
 
-    for (i = 0; i < n; i++) {
+    printf("%d points will be calculated\n", n);
+
+    fft(xr, xi, n);
+
+    for (int i = 0; i < n; i++) {
         fprintf(fpw, "%lf\n", xr[i] * xr[i] + xi[i] * xi[i]);
     }
 
