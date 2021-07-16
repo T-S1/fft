@@ -7,10 +7,17 @@
 #define FNAME_W "output.csv"
 #define N 65536
 
+/* FFTを行う関数
+ * 引数:
+ *  xr[]: FFTの対象となるデータの実部配列
+ *  xi[]: FFTの対象となるデータの虚部配列
+ *  n: データ点数(2のべき乗)
+ */
 int fft (double xr[], double xi[], int n) {
     int i, j, k, d;
     double tr, ti, wr, wi, theta;
 
+    /* ビットリバーサル */
     for (i = 1; i < n - 1; i++) {
         j = i;
         k = 0;

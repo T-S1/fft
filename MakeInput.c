@@ -4,12 +4,12 @@
 #include <math.h>
 
 #define FNAME "input.csv"
-#define N 32768
-#define F 1000
-#define FS 32000
+#define N 256
+#define F 30
+#define FS 256
 
 double func(int i) {
-    return sin(2 * M_PI * F * i / FS);
+    return cos(2 * M_PI * F * i / FS);
 }
 
 int main() {
